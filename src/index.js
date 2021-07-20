@@ -1,6 +1,7 @@
 import path from 'path'
 import bodyParser from 'body-parser'
 import express from 'express'
+import * as fs from 'fs'
 
 import buildMakeTodo from './entities/todo.js'
 import buildAddTodo from './use-cases/buildAddTodo.js'
@@ -11,7 +12,7 @@ import buildMakeDB from './data-access/buildMakeDB.js'
 
 export default function TodoApp() {
     const filePath = path.resolve(path.resolve(), 'src/repository/todos.json')
-    const makeDb = buildMakeDB({ filePath: filePath })
+    const makeDb = buildMakeDB({ filePath: filePath, fs: fs })
     const fileSystemDataAccess = buildFileSystemDataAccess({ makeDB: makeDb })
     const dataAccess = fileSystemDataAccess()
     const port = 3670
