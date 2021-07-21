@@ -1,15 +1,6 @@
 import buildMakeDB from '../../src/data-access/buildMakeDB.js'
 
 describe('buildMakeDB', () => {
-	const fs = {
-		readFileSync: (path) => '\[\{"author":"content","id":"fakeId"\}\]',
-		writeFileSync: (path, content) => {
-			if (path === 'fail') {
-				throw new Error('Exception handling writing')
-			}
-		}
-	}
-
 	it('should throw an error if path is not provided', () => {
 		try {
 			const makeDB = buildMakeDB({})
@@ -51,17 +42,22 @@ describe('buildMakeDB', () => {
 		}
 	})
 	it('should return an function to build the DB', () => {
+		const fs = {}
 		const makeDB = buildMakeDB({ filePath: 'tst', fs: fs })
 		expect(makeDB).not.toBe(null)
 		expect(typeof(makeDB)).toEqual('function')
 	})
 	it('should return an object to represent the DB', () => {
+		const fs = {}
 		const makeDB = buildMakeDB({ filePath: 'test', fs: fs })
 		const db = makeDB()
 		expect(db).not.toBe(null)
 		expect(typeof(db)).toEqual('object')
 	})
 	it('should return an object with a specific interface of functions', () => {
+		const fs = {}
+		fs.readFileSync = jest.fn()
+		fs.readFileSync.mockImplementation(() => '\[\{"author":"author","id":"fakeId"\}\]')
 		const makeDB = buildMakeDB({ filePath: 'test', fs: fs })
 		const db = makeDB()
 		expect(db.edit).not.toBe(null)
@@ -74,6 +70,9 @@ describe('buildMakeDB', () => {
 		expect(typeof(db.content)).toBe('function')
 	})
 	it('should throw an error if I try to add a null todo and the number of items doesn\'t change', () => {
+		const fs = {}
+		fs.readFileSync = jest.fn()
+		fs.readFileSync.mockImplementation(() => '\[\{"author":"author","id":"fakeId"\}\]')
 		const makeDB = buildMakeDB({ filePath: 'test', fs: fs })
 		const db = makeDB()
 		const itemsNumber = db.content().length
@@ -87,6 +86,9 @@ describe('buildMakeDB', () => {
 		}
 	})
 	it('should throw an error if I try to edit a todo without providing it', () => {
+		const fs = {}
+		fs.readFileSync = jest.fn()
+		fs.readFileSync.mockImplementation(() => '\[\{"author":"author","id":"fakeId"\}\]')
 		const makeDB = buildMakeDB({ filePath: 'test', fs: fs })
 		const db = makeDB()
 		try {
@@ -98,6 +100,9 @@ describe('buildMakeDB', () => {
 		}
 	})
 	it('should throw an error if I try to delete a todo without provide his owwn id', () => {
+		const fs = {}
+		fs.readFileSync = jest.fn()
+		fs.readFileSync.mockImplementation(() => '\[\{"author":"author","id":"fakeId"\}\]')
 		const makeDB = buildMakeDB({ filePath: 'test', fs: fs })
 		const db = makeDB()
 		try {
@@ -109,15 +114,26 @@ describe('buildMakeDB', () => {
 		}
 	})
 	it('should add a new item and increase the list count by one', () => {
+		const fs = {}
+		fs.readFileSync = jest.fn()
+		fs.readFileSync
+			.mockImplementationOnce((t) => '\[\{"author":"content","id":"fakeId"\}\]')
+			.mockImplementationOnce((t) => '\[\{"author":"content","id":"fakeId"\}\]')
+			.mockImplementationOnce((t) => '\[\{"author":"content","id":"fakeId"\},\{"author":"an author","id":"fakeId2"\}\]')
+		fs.writeFileSync = jest.fn()
 		const makeDB = buildMakeDB({ filePath: 'test', fs: fs })
 		const db = makeDB()
 		const itemsNumber = db.content().length
-		const inserted = db.insert({ author: '', date: '', id: '', title: '' })
+		const inserted = db.insert({ author: 'an author', date: '', id: 'fakeId2', title: '' })
 		expect(inserted).not.toBe(null)
-		expect(inserted.author).toEqual('')
+		expect(inserted.author).toEqual('an author')
 		expect(db.content().length).toEqual(itemsNumber + 1)
 	})
 	it('should edit an item if it exists in the db without changing the content count', () => {
+		const fs = {}
+		fs.readFileSync = jest.fn()
+		fs.readFileSync.mockImplementation(() => '\[\{"author":"content","id":"fakeId"\}\]')
+		fs.writeFileSync = jest.fn()
 		const makeDB = buildMakeDB({ filePath: 'test', fs: fs })
 		const db = makeDB()
 		const itemsNumber = db.content().length
@@ -128,6 +144,13 @@ describe('buildMakeDB', () => {
 		expect(db.content().length).toEqual(itemsNumber)
 	})
 	it('should delete an item if it\'s present in the db and will decrease the number of items by one', () => {
+		const fs = {}
+		fs.readFileSync = jest.fn()
+		fs.readFileSync
+			.mockImplementationOnce(() => '\[\{"author":"content","id":"fakeId"\}\]')
+			.mockImplementationOnce(() => '\[\{"author":"content","id":"fakeId"\}\]')
+			.mockImplementationOnce(() => '\[\]')
+		fs.writeFileSync = jest.fn()
 		const makeDB = buildMakeDB({ filePath: 'test', fs: fs })
 		const db = makeDB()
 		const itemsNumber = db.content().length
@@ -138,10 +161,22 @@ describe('buildMakeDB', () => {
 		expect(db.content().length).toEqual(itemsNumber - 1)
 	})
 	it('should return the content in the db', () => {
+		const fs = {}
+		fs.readFileSync = jest.fn()
+		fs.readFileSync.mockImplementation(() => '\[\{"author":"content","id":"fakeId"\}\]')
 		const makeDB = buildMakeDB({ filePath: 'test', fs: fs })
 		const db = makeDB()
+		const items = db.content()
+		expect(items).not.toBe(null)
+		expect(typeof(items)).toEqual('object')
+		expect(items.length).toBe(1)
 	})
 	it('should return null if an error occoured during insert and preserve the current number of items', () => {
+		const fs = {}
+		fs.readFileSync = jest.fn()
+		fs.readFileSync.mockImplementation(() => '\[\{"author":"content","id":"fakeId"\}\]')
+		fs.writeFileSync = jest.fn()
+		fs.writeFileSync.mockImplementation(() => { throw new Error('Generic error')})
 		const makeDB = buildMakeDB({ filePath: 'fail', fs: fs })
 		const db = makeDB()
 		const itemsNumber = db.content().length
@@ -150,12 +185,22 @@ describe('buildMakeDB', () => {
 		expect(db.content().length).toEqual(itemsNumber)
 	})
 	it('should return null if an error occoured during edit', () => {
+		const fs = {}
+		fs.readFileSync = jest.fn()
+		fs.readFileSync.mockImplementation(() => '\[\{"author":"content","id":"fakeId"\}\]')
+		fs.writeFileSync = jest.fn()
+		fs.writeFileSync.mockImplementation(() => { throw new Error('Generic error')})
 		const makeDB = buildMakeDB({ filePath: 'fail', fs: fs })
 		const db = makeDB()
 		const edited = db.edit({ author: '', date: 'new date', id: 'fakeId', title: 'new title' })
 		expect(edited).toBe(null)
 	})
 	it('should return null if an error occoured during delete and preserve the current number of items', () => {
+		const fs = {}
+		fs.readFileSync = jest.fn()
+		fs.readFileSync.mockImplementation(() => '\[\{"author":"content","id":"fakeId"\}\]')
+		fs.writeFileSync = jest.fn()
+		fs.writeFileSync.mockImplementation(() => { throw new Error('Generic error')})
 		const makeDB = buildMakeDB({ filePath: 'fail', fs: fs })
 		const db = makeDB()
 		const itemsNumber = db.content().length
